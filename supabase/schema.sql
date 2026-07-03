@@ -9,7 +9,7 @@
 -- funksiyalar `search_path = public` istifade edende crypt()/gen_salt() her
 -- zaman tapilir. Extension artiq basqa semada yukludurse, onu `public`-a
 -- kocururuk (idempotent - tekrar isledile biler).
-do $
+do $$
 begin
   if not exists (select 1 from pg_extension where extname = 'pgcrypto') then
     create extension pgcrypto with schema public;
@@ -25,7 +25,7 @@ begin
 exception when others then
   create extension if not exists pgcrypto;
 end
-$;
+$$;
 
 -- ------------------------------------------------------------
 -- Users: branch accounts + single admin account
@@ -317,7 +317,7 @@ create or replace function logout(p_token uuid)
 returns void
 language plpgsql
 security definer
-as $
+as $$
 begin
   -- Delete the matching, non-expired session. If the token is invalid or
   -- already expired, this is a no-op (does not raise).
@@ -325,7 +325,7 @@ begin
   where token = p_token
     and (expires_at is null or expires_at > now());
 end;
-$;
+$$;
 
 grant execute on function logout(uuid) to anon, authenticated;
 
