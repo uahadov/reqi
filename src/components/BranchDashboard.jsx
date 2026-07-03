@@ -4,6 +4,9 @@ import { useSupabase } from '../contexts/SupabaseContext';
 import { BRANDS } from '../lib/constants';
 import Toast from './Toast';
 
+// SEC-009: hard limit that matches the DB CHECK constraint on orders.order_text
+const MAX_ORDER_TEXT = 2000;
+
 function formatDate(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleString('az-AZ', {
@@ -75,18 +78,28 @@ export default function BranchDashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedBrand) return;
-    if (!orderText.trim()) {
+
+    const trimmedText = orderText.trim();
+
+    if (!trimmedText) {
       setError('Zəhmət olmasa sifariş detallarını daxil edin.');
       return;
     }
+
+    // SEC-009: enforce max length before sending to the server
+    if (trimmedText.length > MAX_ORDER_TEXT) {
+      setError(`Sifariş mətni çox uzundur. Maksimum ${MAX_ORDER_TEXT} simvol ola bilər.`);
+      return;
+    }
+
     setSubmitting(true);
     setError('');
 
     const { error: insertError } = await supabase.from('orders').insert({
-      branch_id: user.id,
+      branch_id:   user.id,
       branch_name: user.display_name,
-      brand: selectedBrand,
-      order_text: orderText.trim(),
+      brand:       selectedBrand,
+      order_text:  trimmedText,
     });
 
     setSubmitting(false);
@@ -179,7 +192,12 @@ export default function BranchDashboard() {
                 value={orderText}
                 onChange={(e) => setOrderText(e.target.value)}
                 placeholder={`məs. Vancat balıq 2kq — 10 ədəd, Vancat toyuq konservi 400qr — 24 ədəd`}
+                maxLength={MAX_ORDER_TEXT}
               />
+              {/* SEC-009: live character counter so user knows the limit */}
+              <p className="hint" style={{ textAlign: 'right', marginTop: '4px' }}>
+                {orderText.length} / {MAX_ORDER_TEXT}
+              </p>
               {error && <div className="form-error">{error}</div>}
               <button type="submit" className="btn-primary" disabled={submitting}>
                 {submitting ? 'Göndərilir…' : 'Sifarişi göndər'}

@@ -6,6 +6,29 @@ import { BRANCHES, BRANDS } from '../lib/constants';
 import Toast from './Toast';
 import OrderDeleteModal from './OrderDeleteModal';
 
+// SEC-007: Sanitise a value before writing it to an Excel cell.
+// Any string starting with a formula-initiating character is prefixed with
+// a single quote so Excel / LibreOffice treats it as literal text, not a formula.
+// This prevents CSV/Excel formula injection (DDE, HYPERLINK, CMD payloads).
+function sanitizeExcelCell(value) {
+  if (typeof value !== 'string') return value;
+  const formulaChars = ['=', '+', '-', '@', '\t', '\r'];
+  if (formulaChars.includes(value[0])) {
+    return "'" + value;
+  }
+  return value;
+}
+
+// SEC-016: Accepted file MIME types for inventory upload.
+const ALLOWED_UPLOAD_TYPES = new Set([
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+  'application/vnd.ms-excel',                                           // .xls
+  'text/csv',                                                           // .csv
+  'application/csv',
+  'text/plain',                                                         // some OS report .csv as text/plain
+]);
+const ALLOWED_UPLOAD_EXT = /\.(xlsx|xls|csv)$/i;
+
 function formatDate(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleString('az-AZ', {
@@ -66,16 +89,18 @@ function OrdersTab({ supabase }) {
 
   const handleExport = () => {
     if (filteredOrders.length === 0) return;
+    // SEC-007: sanitize every user-supplied field before writing to Excel.
+    // This neutralises formula injection (=HYPERLINK, =CMD, DDE payloads, etc.).
     const rows = filteredOrders.map((o) => ({
-      Tarix: formatDate(o.created_at),
-      Filial: o.branch_name,
-      Brend: o.brand,
-      'Sifariş mətni': o.order_text,
+      Tarix:            formatDate(o.created_at),         // server-generated timestamp — safe
+      Filial:           sanitizeExcelCell(o.branch_name),
+      Brend:            sanitizeExcelCell(o.brand),
+      'Sifariş mətni': sanitizeExcelCell(o.order_text),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Sifarişlər');
-    XLSX.writeFile(wb, `pethub-sifarisler-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `boutique-sifarisler-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   const confirmDelete = async () => {
@@ -276,9 +301,28 @@ function InventoryTab({ supabase }) {
     return items;
   };
 
+  // SEC-016: maximum upload file size (5 MB)
+  const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // SEC-016: validate file type by MIME type AND extension
+    // (the `accept` attribute is UI-only and trivially bypassed)
+    if (!ALLOWED_UPLOAD_TYPES.has(file.type) && !ALLOWED_UPLOAD_EXT.test(file.name)) {
+      setError('Yalnız .xlsx, .xls və .csv faylları qəbul edilir.');
+      e.target.value = '';
+      return;
+    }
+
+    // SEC-016: guard against excessively large files before parsing
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError('Fayl həcmi 5 MB-dan çox ola bilməz.');
+      e.target.value = '';
+      return;
+    }
+
     setParsing(true);
     setError('');
 

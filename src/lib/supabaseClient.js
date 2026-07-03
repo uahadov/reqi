@@ -65,5 +65,7 @@ export function createSupabaseClient(token) {
   });
 }
 
+// SEC-014: USER_KEY intentionally removed.
+// The user object is never persisted to localStorage.
+// On page load, the session is always re-validated via the me() RPC.
 export const TOKEN_KEY = 'pethub_token';
-export const USER_KEY = 'pethub_user';

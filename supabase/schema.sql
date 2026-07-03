@@ -3,8 +3,29 @@
 -- Run this in the Supabase SQL Editor.
 -- ============================================================
 
--- Enable required extension for gen_random_uuid()
-create extension if not exists pgcrypto;
+-- Enable required extension for gen_random_uuid() + crypt()/gen_salt()
+-- FIX: "function crypt(text, text) does not exist" xetasini duzeltmek ucun
+-- pgcrypto extension-unu aciqca `public` semasina yukleyirik. SECURITY DEFINER
+-- funksiyalar `search_path = public` istifade edende crypt()/gen_salt() her
+-- zaman tapilir. Extension artiq basqa semada yukludurse, onu `public`-a
+-- kocururuk (idempotent - tekrar isledile biler).
+do $
+begin
+  if not exists (select 1 from pg_extension where extname = 'pgcrypto') then
+    create extension pgcrypto with schema public;
+  end if;
+
+  if exists (
+    select 1 from pg_extension e
+    join pg_namespace n on n.oid = e.extnamespace
+    where e.extname = 'pgcrypto' and n.nspname <> 'public'
+  ) then
+    alter extension pgcrypto set schema public;
+  end if;
+exception when others then
+  create extension if not exists pgcrypto;
+end
+$;
 
 -- ------------------------------------------------------------
 -- Users: branch accounts + single admin account
@@ -234,7 +255,7 @@ begin
     raise exception 'Yanlış rol seçildi';
   end if;
 
-  if u.password_hash != crypt(p_password, u.password_hash) then
+  if u.password_hash != public.crypt(p_password, u.password_hash) then
     raise exception 'Yanlış məlumat';
   end if;
 
@@ -286,6 +307,27 @@ end;
 $$;
 
 grant execute on function me(uuid) to anon, authenticated;
+-- ------------------------------------------------------------
+-- logout: server-side session invalidation
+-- Frontend calls: supabase.rpc('logout', { p_token })
+-- Deletes the session row so the token can no longer be used, even
+-- before its natural 24h expiry. (Best-effort on the client side.)
+-- ------------------------------------------------------------
+create or replace function logout(p_token uuid)
+returns void
+language plpgsql
+security definer
+as $
+begin
+  -- Delete the matching, non-expired session. If the token is invalid or
+  -- already expired, this is a no-op (does not raise).
+  delete from sessions
+  where token = p_token
+    and (expires_at is null or expires_at > now());
+end;
+$;
+
+grant execute on function logout(uuid) to anon, authenticated;
 
 create or replace function change_password(p_user_id uuid, p_new_password text)
 returns void
@@ -297,12 +339,12 @@ begin
     raise exception 'Şifrələri yalnız adminlər dəyişə bilər';
   end if;
 
-  if length(p_new_password) < 4 then
-    raise exception 'Şifrə ən azı 4 simvol olmalıdır';
+  if length(p_new_password) < 10 then
+    raise exception 'Şifrə ən azı 10 simvol olmalıdır';
   end if;
 
   update users
-  set password_hash = crypt(p_new_password, gen_salt('bf'))
+  set password_hash = public.crypt(p_new_password, public.gen_salt('bf'))
   where id = p_user_id;
 
   insert into password_change_log (user_id, changed_by)
