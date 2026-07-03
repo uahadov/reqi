@@ -178,7 +178,7 @@ begin
     raise exception 'Bunu yalnız adminlər edə bilər';
   end if;
 
-  delete from inventory;
+  delete from inventory where true;
 
   insert into inventory (brand, product_name, qty)
   select
