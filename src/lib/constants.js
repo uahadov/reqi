@@ -1,4 +1,19 @@
-export const BRANDS = ['Monje', 'Animonda', 'Trixie', 'Simba', 'Rocat', 'Vancat'];
+export const BRANDS = [
+  '8in1',
+  'Nexgard',
+  'Stride',
+  'Vitapol',
+  'Gemon',
+  'Natura',
+  'Ortin',
+  'Tetra',
+  'Monje',
+  'Animonda',
+  'Trixie',
+  'Simba',
+  'Rocat',
+  'Vancat',
+];
 
 export const BRANCHES = [
   { username: 'zorge', displayName: 'Zorge' },
