@@ -21,6 +21,11 @@ function formatDate(iso) {
   });
 }
 
+function isoDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toISOString().slice(0, 10);
+}
+
 function createEmptyLine() {
   return { productCode: '', qty: '', note: '' };
 }
@@ -32,6 +37,10 @@ export default function BranchDashboard() {
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [brandLines, setBrandLines] = useState({});
   const [orders, setOrders] = useState([]);
+  const [filteredOrders, setFilteredOrders] = useState([]);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [appliedFilters, setAppliedFilters] = useState({ dateFrom: '', dateTo: '' });
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
   const [error, setError] = useState('');
@@ -43,7 +52,10 @@ export default function BranchDashboard() {
       .eq('branch_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (!ordError) setOrders(data || []);
+    if (!ordError) {
+      setOrders(data || []);
+      setFilteredOrders(data || []);
+    }
   };
 
   useEffect(() => {
@@ -372,9 +384,52 @@ export default function BranchDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.4, ease }}
         >
-          <h3>Sifariş tarixçəm</h3>
-          {orders.length === 0 ? (
-            <p className="muted">Hələ sifariş göndərilməyib.</p>
+          <div className="panel-header">
+            <h3>Sifariş tarixçəm</h3>
+            <div className="history-filters">
+              <label className="date-filter">
+                <span>Başlanğıc</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                />
+              </label>
+              <label className="date-filter">
+                <span>Son</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
+              </label>
+              <motion.button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setAppliedFilters({ dateFrom, dateTo });
+                  const next = orders.filter((o) => {
+                    const d = isoDate(o.created_at);
+                    if (dateFrom && d < dateFrom) return false;
+                    if (dateTo && d > dateTo) return false;
+                    return true;
+                  });
+                  setFilteredOrders(next);
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Axtar
+              </motion.button>
+            </div>
+          </div>
+
+          {filteredOrders.length === 0 ? (
+            <p className="muted">
+              {orders.length === 0
+                ? 'Hələ sifariş göndərilməyib.'
+                : 'Cari tarix aralığında sifariş yoxdur.'}
+            </p>
           ) : (
             <div className="table-wrap">
               <table className="data-table">
@@ -388,7 +443,7 @@ export default function BranchDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((o, i) => (
+                  {filteredOrders.map((o, i) => (
                     <motion.tr
                       key={o.id}
                       initial={{ opacity: 0 }}
