@@ -661,6 +661,32 @@ textarea {
   color: #fff;
 }
 
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  margin-bottom: 0.35rem;
+  filter: grayscale(0.2);
+  transition: filter 0.2s var(--ease-out);
+}
+
+.brand-tile:hover .brand-logo,
+.brand-tile.selected .brand-logo {
+  filter: grayscale(0);
+}
+
+.brand-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brand-cell-logo {
+  object-fit: contain;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+}
+
 /* ---------------------------------------------------------------
    Workspace / tables
    --------------------------------------------------------------- */
@@ -1005,7 +1031,7 @@ textarea {
    --------------------------------------------------------------- */
 @media (min-width: 640px) {
   .brand-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 
   .brand-workspace {
@@ -1031,7 +1057,7 @@ textarea {
 
 @media (min-width: 1024px) {
   .brand-grid {
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(7, 1fr);
   }
 
   .dashboard {

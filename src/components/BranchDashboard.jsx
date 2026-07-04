@@ -51,17 +51,17 @@ export default function BranchDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id, supabase]);
 
-  const toggleBrand = (brand) => {
+  const toggleBrand = (brandName) => {
     setSelectedBrands((prev) => {
-      const exists = prev.includes(brand);
+      const exists = prev.includes(brandName);
       if (exists) {
-        return prev.filter((b) => b !== brand);
+        return prev.filter((b) => b !== brandName);
       }
       setBrandLines((lines) => ({
         ...lines,
-        [brand]: [createEmptyLine()],
+        [brandName]: [createEmptyLine()],
       }));
-      return [...prev, brand];
+      return [...prev, brandName];
     });
     setError('');
   };
@@ -210,9 +210,9 @@ export default function BranchDashboard() {
           <div className="brand-grid">
             {BRANDS.map((brand, i) => (
               <motion.button
-                key={brand}
-                className={`brand-tile ${selectedBrands.includes(brand) ? 'selected' : ''}`}
-                onClick={() => toggleBrand(brand)}
+                key={brand.name}
+                className={`brand-tile ${selectedBrands.includes(brand.name) ? 'selected' : ''}`}
+                onClick={() => toggleBrand(brand.name)}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 + i * 0.03, duration: 0.35, ease }}
@@ -220,7 +220,16 @@ export default function BranchDashboard() {
                 whileTap={{ scale: 0.98 }}
               >
                 <span className="tile-hole" />
-                <span className="tile-label">{brand}</span>
+                <img
+                  src={brand.logo}
+                  alt={brand.name}
+                  className="brand-logo"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+                <span className="tile-label">{brand.name}</span>
               </motion.button>
             ))}
           </div>
@@ -244,9 +253,11 @@ export default function BranchDashboard() {
               </p>
 
               <AnimatePresence mode="popLayout">
-                {selectedBrands.map((brand) => (
+                {selectedBrands.map((brandName) => {
+                  const brand = BRANDS.find((b) => b.name === brandName) || { name: brandName };
+                  return (
                   <motion.div
-                    key={brand}
+                    key={brandName}
                     className="brand-order-block"
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -254,7 +265,7 @@ export default function BranchDashboard() {
                     transition={{ duration: 0.3, ease }}
                     layout
                   >
-                    <h4>{brand}</h4>
+                    <h4>{brand.name}</h4>
                     <div className="order-lines">
                       <div className="order-line header">
                         <span>Məhsul kodu/adı</span>
@@ -263,7 +274,7 @@ export default function BranchDashboard() {
                         <span></span>
                       </div>
                       <AnimatePresence initial={false}>
-                        {(brandLines[brand] || [createEmptyLine()]).map((line, index) => (
+                        {(brandLines[brandName] || [createEmptyLine()]).map((line, index) => (
                           <motion.div
                             className="order-line"
                             key={index}
@@ -278,7 +289,7 @@ export default function BranchDashboard() {
                               placeholder="məs. Vancat balıq 2kq"
                               value={line.productCode}
                               onChange={(e) =>
-                                updateLine(brand, index, 'productCode', e.target.value)
+                                updateLine(brandName, index, 'productCode', e.target.value)
                               }
                               maxLength={MAX_PRODUCT_CODE}
                             />
@@ -289,19 +300,19 @@ export default function BranchDashboard() {
                               step="1"
                               placeholder="0"
                               value={line.qty}
-                              onChange={(e) => updateLine(brand, index, 'qty', e.target.value)}
+                              onChange={(e) => updateLine(brandName, index, 'qty', e.target.value)}
                             />
                             <input
                               type="text"
                               placeholder="təcili lazımdır..."
                               value={line.note}
-                              onChange={(e) => updateLine(brand, index, 'note', e.target.value)}
+                              onChange={(e) => updateLine(brandName, index, 'note', e.target.value)}
                               maxLength={MAX_NOTE}
                             />
                             <motion.button
                               type="button"
                               className="btn-icon danger"
-                              onClick={() => removeLine(brand, index)}
+                              onClick={() => removeLine(brandName, index)}
                               aria-label="Sətri sil"
                               title="Sətri sil"
                               whileHover={{ scale: 1.05 }}
@@ -317,14 +328,15 @@ export default function BranchDashboard() {
                     <motion.button
                       type="button"
                       className="btn-secondary add-line-btn"
-                      onClick={() => addLine(brand)}
+                      onClick={() => addLine(brandName)}
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                     >
-                      + {brand} üçün sətir əlavə et
+                      + {brand.name} üçün sətir əlavə et
                     </motion.button>
                   </motion.div>
-                ))}
+                );
+              })}
               </AnimatePresence>
 
               <AnimatePresence>

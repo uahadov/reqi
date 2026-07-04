@@ -158,8 +158,8 @@ function OrdersTab({ supabase }) {
           <select value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)}>
             <option value="">Bütün brendlər</option>
             {BRANDS.map((b) => (
-              <option key={b} value={b}>
-                {b}
+              <option key={b.name} value={b.name}>
+                {b.name}
               </option>
             ))}
           </select>
@@ -238,7 +238,12 @@ function OrdersTab({ supabase }) {
                   <td>
                     <span className="branch-tag">{o.branch_name}</span>
                   </td>
-                  <td>{o.brand}</td>
+                  <td>
+                    <span className="brand-cell">
+                      <BrandLogo name={o.brand} size={20} />
+                      {o.brand}
+                    </span>
+                  </td>
                   <td>{o.product_code}</td>
                   <td className="numeric mono">{o.qty}</td>
                   <td>{o.note || '—'}</td>
@@ -514,6 +519,24 @@ function InventoryTab({ supabase }) {
 // ------------------------------------------------------------------
 // Branches / Passwords tab
 // ------------------------------------------------------------------
+function BrandLogo({ name, size = 20 }) {
+  const brand = BRANDS.find((b) => b.name === name);
+  if (!brand || !brand.logo) return null;
+  return (
+    <img
+      src={brand.logo}
+      alt={brand.name}
+      width={size}
+      height={size}
+      className="brand-cell-logo"
+      loading="lazy"
+      onError={(e) => {
+        e.target.style.display = 'none';
+      }}
+    />
+  );
+}
+
 function BranchesTab({ supabase }) {
   const { user: admin } = useAuth();
   const [profiles, setProfiles] = useState([]);
