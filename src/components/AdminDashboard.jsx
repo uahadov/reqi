@@ -1,10 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { BRANCHES, BRANDS } from '../lib/constants';
 import Toast from './Toast';
 import OrderDeleteModal from './OrderDeleteModal';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.08 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22, 1, 0.36, 1] } },
+};
+
+const rowVariants = {
+  hidden: { opacity: 0, x: -10 },
+  visible: (i) => ({ opacity: 1, x: 0, transition: { delay: i * 0.03, duration: 0.28 } }),
+};
 
 // SEC-007: Sanitise a value before writing it to an Excel cell.
 // Any string starting with a formula-initiating character is prefixed with
@@ -80,6 +96,7 @@ function OrdersTab({ supabase }) {
 
   useEffect(() => {
     fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
 
   const filteredOrders = useMemo(() => {
@@ -127,8 +144,8 @@ function OrdersTab({ supabase }) {
   };
 
   return (
-    <div className="tab-content">
-      <div className="toolbar">
+    <motion.div className="tab-content" variants={containerVariants} initial="hidden" animate="visible">
+      <motion.div className="toolbar" variants={itemVariants}>
         <div className="filters">
           <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)}>
             <option value="">Bütün filiallar</option>
@@ -158,7 +175,7 @@ function OrdersTab({ supabase }) {
             <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           </label>
 
-          <button
+          <motion.button
             type="button"
             className="btn-secondary"
             onClick={() =>
@@ -169,22 +186,34 @@ function OrdersTab({ supabase }) {
                 dateTo,
               })
             }
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
           >
             Axtar
-          </button>
+          </motion.button>
         </div>
 
-        <button className="btn-primary" onClick={handleExport} disabled={filteredOrders.length === 0}>
+        <motion.button
+          className="btn-primary"
+          onClick={handleExport}
+          disabled={filteredOrders.length === 0}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+        >
           Excel-ə çıxar
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       {loading ? (
-        <p className="muted">Sifarişlər yüklənir…</p>
+        <motion.p className="muted" variants={itemVariants}>
+          Sifarişlər yüklənir…
+        </motion.p>
       ) : filteredOrders.length === 0 ? (
-        <p className="muted">Cari filtrlərə uyğun sifariş yoxdur.</p>
+        <motion.p className="muted" variants={itemVariants}>
+          Cari filtrlərə uyğun sifariş yoxdur.
+        </motion.p>
       ) : (
-        <div className="table-wrap">
+        <motion.div className="table-wrap" variants={itemVariants}>
           <table className="data-table">
             <thead>
               <tr>
@@ -198,8 +227,14 @@ function OrdersTab({ supabase }) {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((o) => (
-                <tr key={o.id}>
+              {filteredOrders.map((o, i) => (
+                <motion.tr
+                  key={o.id}
+                  custom={i}
+                  variants={rowVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   <td className="mono nowrap">{formatDate(o.created_at)}</td>
                   <td>
                     <span className="branch-tag">{o.branch_name}</span>
@@ -209,20 +244,22 @@ function OrdersTab({ supabase }) {
                   <td className="numeric mono">{o.qty}</td>
                   <td>{o.note || '—'}</td>
                   <td className="actions">
-                    <button
+                    <motion.button
                       className="btn-icon danger"
                       onClick={() => setDeleteOrder(o)}
                       aria-label="Sifarişi sil"
                       title="Sifarişi sil"
+                      whileHover={{ scale: 1.1, rotate: 8 }}
+                      whileTap={{ scale: 0.9 }}
                     >
                       🗑
-                    </button>
+                    </motion.button>
                   </td>
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </motion.div>
       )}
 
       <OrderDeleteModal
@@ -232,13 +269,23 @@ function OrdersTab({ supabase }) {
         loading={deleting}
       />
 
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+          >
+            <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
 // ------------------------------------------------------------------
-// Inventory tab
+// Inventory tab (kept for future use)
 // ------------------------------------------------------------------
 function InventoryTab({ supabase }) {
   const [inventory, setInventory] = useState([]);
@@ -261,6 +308,7 @@ function InventoryTab({ supabase }) {
 
   useEffect(() => {
     fetchInventory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
 
   const grouped = useMemo(() => {
@@ -569,25 +617,35 @@ function BranchesTab({ supabase }) {
   const adminProfile = profiles.find((p) => p.id === admin.id);
 
   return (
-    <div className="tab-content">
-      <div className="panel passwords-panel">
+    <motion.div className="tab-content" variants={containerVariants} initial="hidden" animate="visible">
+      <motion.div className="panel passwords-panel" variants={itemVariants}>
         <h3>Filial şifrələri</h3>
         {branches.length === 0 ? (
           <p className="muted">Filial hesabı tapılmadı.</p>
         ) : (
           <div className="password-list">{branches.map(renderRow)}</div>
         )}
-      </div>
+      </motion.div>
 
       {adminProfile && (
-        <div className="panel passwords-panel">
+        <motion.div className="panel passwords-panel" variants={itemVariants}>
           <h3>Admin şifrəsi</h3>
           <div className="password-list">{renderRow(adminProfile)}</div>
-        </div>
+        </motion.div>
       )}
 
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+          >
+            <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -595,13 +653,18 @@ function BranchesTab({ supabase }) {
 // Admin dashboard shell
 // ------------------------------------------------------------------
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const supabase = useSupabase();
   const [activeTab, setActiveTab] = useState('orders');
 
   return (
-    <div className="dashboard admin-dashboard">
-      <header className="dash-header">
+    <motion.div
+      className="dashboard admin-dashboard"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.header className="dash-header" variants={itemVariants}>
         <div className="dash-brand">
           <img src="/logo.jpeg" alt="BOUTIQUE" className="dash-logo" />
           <div>
@@ -609,27 +672,48 @@ export default function AdminDashboard() {
             <p>Admin paneli</p>
           </div>
         </div>
-        <button className="btn-secondary" onClick={logout}>
+        <motion.button
+          className="btn-secondary"
+          onClick={logout}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+        >
           Çıxış
-        </button>
-      </header>
+        </motion.button>
+      </motion.header>
 
-      <nav className="dash-tabs">
-        <button className={activeTab === 'orders' ? 'active' : ''} onClick={() => setActiveTab('orders')}>
+      <motion.nav className="dash-tabs" variants={itemVariants}>
+        <motion.button
+          className={activeTab === 'orders' ? 'active' : ''}
+          onClick={() => setActiveTab('orders')}
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.97 }}
+        >
           Sifarişlər
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           className={activeTab === 'branches' ? 'active' : ''}
           onClick={() => setActiveTab('branches')}
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.97 }}
         >
           Filiallar
-        </button>
-      </nav>
+        </motion.button>
+      </motion.nav>
 
-      <main className="dash-body">
-        {activeTab === 'orders' && <OrdersTab supabase={supabase} />}
-        {activeTab === 'branches' && <BranchesTab supabase={supabase} />}
-      </main>
-    </div>
+      <AnimatePresence mode="wait">
+        <motion.main
+          className="dash-body"
+          key={activeTab}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {activeTab === 'orders' && <OrdersTab supabase={supabase} />}
+          {activeTab === 'branches' && <BranchesTab supabase={supabase} />}
+        </motion.main>
+      </AnimatePresence>
+    </motion.div>
   );
 }

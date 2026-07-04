@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { BRANDS } from '../lib/constants';
@@ -23,6 +24,34 @@ function createEmptyLine() {
   return { productCode: '', qty: '', note: '' };
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06, delayChildren: 0.1 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const blockVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+  },
+  exit: { opacity: 0, y: -12, transition: { duration: 0.25 } },
+};
+
 export default function BranchDashboard() {
   const { user, logout } = useAuth();
   const supabase = useSupabase();
@@ -46,6 +75,7 @@ export default function BranchDashboard() {
 
   useEffect(() => {
     fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id, supabase]);
 
   const toggleBrand = (brand) => {
@@ -167,8 +197,13 @@ export default function BranchDashboard() {
   };
 
   return (
-    <div className="dashboard branch-dashboard">
-      <header className="dash-header">
+    <motion.div
+      className="dashboard branch-dashboard"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.header className="dash-header" variants={itemVariants}>
         <div className="dash-brand">
           <img src="/logo.jpeg" alt="BOUTIQUE" className="dash-logo" />
           <div>
@@ -176,31 +211,46 @@ export default function BranchDashboard() {
             <p>Filial: {user.display_name}</p>
           </div>
         </div>
-        <button className="btn-secondary" onClick={logout}>
+        <motion.button
+          className="btn-secondary"
+          onClick={logout}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+        >
           Çıxış
-        </button>
-      </header>
+        </motion.button>
+      </motion.header>
 
-      <main className="dash-body">
-        <section className="brand-picker">
+      <motion.main className="dash-body">
+        <motion.section className="panel brand-picker" variants={itemVariants}>
           <h2>Brend seçin</h2>
-          <div className="brand-grid">
+          <motion.div className="brand-grid" variants={containerVariants}>
             {BRANDS.map((brand) => (
-              <button
+              <motion.button
                 key={brand}
                 className={`brand-tile ${selectedBrands.includes(brand) ? 'selected' : ''}`}
                 onClick={() => toggleBrand(brand)}
+                variants={itemVariants}
+                whileHover={{ y: -4, boxShadow: '0 12px 32px rgba(139, 92, 246, 0.28)' }}
+                whileTap={{ scale: 0.97 }}
+                layout
               >
                 <span className="tile-hole" />
                 <span className="tile-label">{brand}</span>
-              </button>
+              </motion.button>
             ))}
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
-        <form className="panel order-panel" onSubmit={handleSubmit}>
+        <motion.form
+          className="panel order-panel"
+          onSubmit={handleSubmit}
+          variants={itemVariants}
+        >
           {selectedBrands.length === 0 ? (
-            <p className="muted">Sifariş vermək üçün yuxarıdan ən azı bir brend seçin.</p>
+            <motion.p className="muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              Sifariş vermək üçün yuxarıdan ən azı bir brend seçin.
+            </motion.p>
           ) : (
             <>
               <h3>Sifariş ver</h3>
@@ -209,78 +259,118 @@ export default function BranchDashboard() {
                 yazın. + düyməsi ilə yeni sətir əlavə edin.
               </p>
 
-              {selectedBrands.map((brand) => (
-                <div key={brand} className="brand-order-block">
-                  <h4>{brand}</h4>
-                  <div className="order-lines">
-                    <div className="order-line header">
-                      <span>Məhsul kodu/adı</span>
-                      <span>Say</span>
-                      <span>Qeyd</span>
-                      <span></span>
-                    </div>
-                    {(brandLines[brand] || [createEmptyLine()]).map((line, index) => (
-                      <div className="order-line" key={index}>
-                        <input
-                          type="text"
-                          placeholder="məs. Vancat balıq 2kq"
-                          value={line.productCode}
-                          onChange={(e) =>
-                            updateLine(brand, index, 'productCode', e.target.value)
-                          }
-                          maxLength={MAX_PRODUCT_CODE}
-                        />
-                        <input
-                          type="number"
-                          min={1}
-                          max={MAX_QTY}
-                          step="1"
-                          placeholder="0"
-                          value={line.qty}
-                          onChange={(e) => updateLine(brand, index, 'qty', e.target.value)}
-                        />
-                        <input
-                          type="text"
-                          placeholder="təcili lazımdır..."
-                          value={line.note}
-                          onChange={(e) => updateLine(brand, index, 'note', e.target.value)}
-                          maxLength={MAX_NOTE}
-                        />
-                        <button
-                          type="button"
-                          className="btn-icon danger"
-                          onClick={() => removeLine(brand, index)}
-                          aria-label="Sətri sil"
-                          title="Sətri sil"
-                        >
-                          🗑
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="btn-secondary add-line-btn"
-                    onClick={() => addLine(brand)}
+              <AnimatePresence mode="popLayout">
+                {selectedBrands.map((brand) => (
+                  <motion.div
+                    key={brand}
+                    className="brand-order-block"
+                    variants={blockVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    layout
                   >
-                    + {brand} üçün sətir əlavə et
-                  </button>
-                </div>
-              ))}
+                    <h4>{brand}</h4>
+                    <div className="order-lines">
+                      <div className="order-line header">
+                        <span>Məhsul kodu/adı</span>
+                        <span>Say</span>
+                        <span>Qeyd</span>
+                        <span></span>
+                      </div>
+                      <AnimatePresence initial={false}>
+                        {(brandLines[brand] || [createEmptyLine()]).map((line, index) => (
+                          <motion.div
+                            className="order-line"
+                            key={index}
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            layout
+                          >
+                            <input
+                              type="text"
+                              placeholder="məs. Vancat balıq 2kq"
+                              value={line.productCode}
+                              onChange={(e) =>
+                                updateLine(brand, index, 'productCode', e.target.value)
+                              }
+                              maxLength={MAX_PRODUCT_CODE}
+                            />
+                            <input
+                              type="number"
+                              min={1}
+                              max={MAX_QTY}
+                              step="1"
+                              placeholder="0"
+                              value={line.qty}
+                              onChange={(e) => updateLine(brand, index, 'qty', e.target.value)}
+                            />
+                            <input
+                              type="text"
+                              placeholder="təcili lazımdır..."
+                              value={line.note}
+                              onChange={(e) => updateLine(brand, index, 'note', e.target.value)}
+                              maxLength={MAX_NOTE}
+                            />
+                            <motion.button
+                              type="button"
+                              className="btn-icon danger"
+                              onClick={() => removeLine(brand, index)}
+                              aria-label="Sətri sil"
+                              title="Sətri sil"
+                              whileHover={{ scale: 1.1, rotate: 8 }}
+                              whileTap={{ scale: 0.9 }}
+                            >
+                              🗑
+                            </motion.button>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
 
-              {error && <div className="form-error">{error}</div>}
-              <button type="submit" className="btn-primary" disabled={submitting}>
+                    <motion.button
+                      type="button"
+                      className="btn-secondary add-line-btn"
+                      onClick={() => addLine(brand)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      + {brand} üçün sətir əlavə et
+                    </motion.button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {error && (
+                <motion.div
+                  className="form-error"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                >
+                  {error}
+                </motion.div>
+              )}
+              <motion.button
+                type="submit"
+                className="btn-primary"
+                disabled={submitting}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 {submitting ? 'Göndərilir…' : 'Bütün sifarişləri birdəfəlik göndər'}
-              </button>
+              </motion.button>
             </>
           )}
-        </form>
+        </motion.form>
 
-        <section className="panel history-panel">
+        <motion.section className="panel history-panel" variants={itemVariants}>
           <h3>Sifariş tarixçəm</h3>
           {orders.length === 0 ? (
-            <p className="muted">Hələ sifariş göndərilməyib.</p>
+            <motion.p className="muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              Hələ sifariş göndərilməyib.
+            </motion.p>
           ) : (
             <div className="table-wrap">
               <table className="data-table">
@@ -294,23 +384,38 @@ export default function BranchDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((o) => (
-                    <tr key={o.id}>
+                  {orders.map((o, i) => (
+                    <motion.tr
+                      key={o.id}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.04, duration: 0.3 }}
+                    >
                       <td className="mono nowrap">{formatDate(o.created_at)}</td>
                       <td>{o.brand}</td>
                       <td>{o.product_code}</td>
                       <td className="numeric mono">{o.qty}</td>
                       <td>{o.note || '—'}</td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-        </section>
-      </main>
+        </motion.section>
+      </motion.main>
 
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+          >
+            <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
