@@ -1,4 +1,4 @@
-# PetHub Ops
+# Boutique Order Management
 
 An internal operations tool for five pet-store branches to submit product orders by brand, and for a central admin to view, filter, export, and delete orders. Admins also upload daily inventory snapshots so branches can reference stock while ordering.
 
