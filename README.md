@@ -92,21 +92,32 @@ Password changes are handled by the `change_password` RPC, which verifies the ca
 
 ## Inventory upload format
 
-Upload `.xlsx`, `.xls`, or `.csv` with columns for:
+Upload `.xlsx`, `.xls`, or `.csv` in one of these two formats:
 
+**Format 1 — columnar:**
 - **Brand** (also accepts `Brend`)
 - **Product** (also accepts `Məhsul`, `Mehsul`, `Item`)
 - **Qty** (also accepts `Quantity`, `Say`, `Qalıq`, `Qaliq`, `Stock`, `Count`)
+
+**Format 2 — daily stock report:**
+- Header rows are ignored automatically.
+- Brand names appear as standalone rows (e.g. `DAYANG`, `SIMBA`, `MONGE`).
+- Under each brand, product rows use columns: `№`, `Mal`, `Miqdar` / `Cəmi`.
+- The final total row (`Cəmi :`) is ignored.
 
 The upload fully replaces the `inventory` table with the new snapshot.
 
 ## Orders export
 
-On the admin **Orders** tab, filters apply in real time. The **Export to Excel** button downloads the currently filtered rows with columns: Date, Branch, Brand, Order Text.
+On the admin **Orders** tab, filters apply in real time. The **Export to Excel** button downloads the currently filtered rows with columns: Date, Branch, Brand, Product, Qty, Note.
 
 ## Deleting orders
 
 Admins can delete orders from the Orders tab. Deletion is a soft delete (`deleted_at = now()`), so data can be recovered directly from Postgres if needed.
+
+## Automatic cleanup
+
+Orders older than **2 months + 5 days** (approximately 65 days) are automatically hard-deleted every night at 03:00 via the `cleanup_old_orders()` Postgres function and `pg_cron` (enabled on Supabase Pro plans). To set it up, run `supabase/setup_35_day_cleanup.sql` in the Supabase SQL Editor after running `schema.sql`.
 
 ## License
 

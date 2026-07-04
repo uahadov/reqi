@@ -67,14 +67,20 @@ create table if not exists inventory (
 create index if not exists idx_inventory_brand on inventory(brand);
 
 -- ------------------------------------------------------------
--- Orders: one row per submitted order
+-- Orders: one row per submitted product line
 -- ------------------------------------------------------------
 create table if not exists orders (
   id uuid primary key default gen_random_uuid(),
   branch_id uuid references users(id) not null,
   branch_name text not null,
   brand text not null,
-  order_text text not null,
+  product_code text not null,
+  qty integer not null default 0,
+  note text default null,
+  order_text text generated always as (
+    product_code || ' — ' || qty ||
+    case when note is not null and note <> '' then ' (' || note || ')' else '' end
+  ) stored,
   created_at timestamptz default now(),
   deleted_at timestamptz default null
 );
@@ -339,8 +345,8 @@ begin
     raise exception 'Şifrələri yalnız adminlər dəyişə bilər';
   end if;
 
-  if length(p_new_password) < 10 then
-    raise exception 'Şifrə ən azı 10 simvol olmalıdır';
+  if length(p_new_password) < 6 then
+    raise exception 'Şifrə ən azı 6 simvol olmalıdır';
   end if;
 
   update users
@@ -401,6 +407,25 @@ create policy "orders_insert_branch_own"
   );
 
 -- Soft deletes happen through the soft_delete_order RPC; no direct update/delete needed.
+
+-- ------------------------------------------------------------
+-- Auto-cleanup: hard-delete orders older than 2 months + 5 days
+-- (approximately 65 days). Runs daily via pg_cron if the
+-- extension is enabled, otherwise can be invoked manually or
+-- scheduled externally.
+-- ------------------------------------------------------------
+create or replace function cleanup_old_orders()
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  delete from orders
+  where created_at < (now() - interval '65 days');
+end;
+$$;
+
+grant execute on function cleanup_old_orders() to anon, authenticated;
 
 -- Ensure the PostgREST roles can use our tables and functions
 grant usage on schema public to anon, authenticated;

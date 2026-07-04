@@ -56,6 +56,12 @@ function OrdersTab({ supabase }) {
   const [brandFilter, setBrandFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [appliedFilters, setAppliedFilters] = useState({
+    branch: '',
+    brand: '',
+    dateFrom: '',
+    dateTo: '',
+  });
 
   const [deleteOrder, setDeleteOrder] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -78,14 +84,14 @@ function OrdersTab({ supabase }) {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
-      if (branchFilter && o.branch_name !== branchFilter) return false;
-      if (brandFilter && o.brand !== brandFilter) return false;
+      if (appliedFilters.branch && o.branch_name !== appliedFilters.branch) return false;
+      if (appliedFilters.brand && o.brand !== appliedFilters.brand) return false;
       const d = isoDate(o.created_at);
-      if (dateFrom && d < dateFrom) return false;
-      if (dateTo && d > dateTo) return false;
+      if (appliedFilters.dateFrom && d < appliedFilters.dateFrom) return false;
+      if (appliedFilters.dateTo && d > appliedFilters.dateTo) return false;
       return true;
     });
-  }, [orders, branchFilter, brandFilter, dateFrom, dateTo]);
+  }, [orders, appliedFilters]);
 
   const handleExport = () => {
     if (filteredOrders.length === 0) return;
@@ -95,7 +101,9 @@ function OrdersTab({ supabase }) {
       Tarix:            formatDate(o.created_at),         // server-generated timestamp — safe
       Filial:           sanitizeExcelCell(o.branch_name),
       Brend:            sanitizeExcelCell(o.brand),
-      'Sifariş mətni': sanitizeExcelCell(o.order_text),
+      Məhsul:           sanitizeExcelCell(o.product_code),
+      Say:              o.qty,
+      Qeyd:             sanitizeExcelCell(o.note || ''),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -149,6 +157,21 @@ function OrdersTab({ supabase }) {
             <span>Son</span>
             <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           </label>
+
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() =>
+              setAppliedFilters({
+                branch: branchFilter,
+                brand: brandFilter,
+                dateFrom,
+                dateTo,
+              })
+            }
+          >
+            Axtar
+          </button>
         </div>
 
         <button className="btn-primary" onClick={handleExport} disabled={filteredOrders.length === 0}>
@@ -168,7 +191,9 @@ function OrdersTab({ supabase }) {
                 <th>Tarix</th>
                 <th>Filial</th>
                 <th>Brend</th>
-                <th>Sifariş mətni</th>
+                <th>Məhsul</th>
+                <th className="numeric">Say</th>
+                <th>Qeyd</th>
                 <th className="actions">Əməliyyatlar</th>
               </tr>
             </thead>
@@ -180,7 +205,9 @@ function OrdersTab({ supabase }) {
                     <span className="branch-tag">{o.branch_name}</span>
                   </td>
                   <td>{o.brand}</td>
-                  <td>{o.order_text}</td>
+                  <td>{o.product_code}</td>
+                  <td className="numeric mono">{o.qty}</td>
+                  <td>{o.note || '—'}</td>
                   <td className="actions">
                     <button
                       className="btn-icon danger"
@@ -261,8 +288,8 @@ function InventoryTab({ supabase }) {
 
     if (rows.length < 2) throw new Error('Fayl boş görünür.');
 
+    // Try the standard columnar format first: Brand / Product / Qty
     const headers = rows[0].map(normalizeHeader);
-
     const findCol = (names) => {
       for (const name of names) {
         const idx = headers.indexOf(name);
@@ -275,30 +302,100 @@ function InventoryTab({ supabase }) {
     const productIdx = findCol(['product', 'mehsul', 'məhsul', 'item']);
     const qtyIdx = findCol(['qty', 'quantity', 'say', 'qaliq', 'qalıq', 'stock', 'count']);
 
-    if (brandIdx === -1 || productIdx === -1 || qtyIdx === -1) {
+    if (brandIdx !== -1 && productIdx !== -1 && qtyIdx !== -1) {
+      const items = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const brand = String(row[brandIdx] || '').trim();
+        const product = String(row[productIdx] || '').trim();
+        const qty = parseQty(row[qtyIdx]);
+
+        if (!brand || !product) continue;
+        items.push({
+          brand,
+          product_name: product,
+          qty,
+        });
+      }
+      if (items.length > 0) return items;
+    }
+
+    // Fallback: parse the customer's daily stock report format where
+    // brand names appear as their own row, followed by product rows with
+    // columns: No, Product, Qty. The last row is a total line.
+    return parseStockReport(rows);
+  };
+
+  const parseStockReport = (rows) => {
+    const items = [];
+    let currentBrand = null;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i].map((c) => (c == null ? '' : String(c).trim()));
+
+      // Skip empty rows and header/meta rows
+      if (row.every((c) => c === '')) continue;
+
+      const first = row[1] || row[0] || '';
+      const normalizedFirst = normalizeHeader(first);
+
+      // Skip title, date, and column header rows
+      if (
+        normalizedFirst.includes('qaliq') ||
+        normalizedFirst.includes('qalıq') ||
+        normalizedFirst === 'mal' ||
+        normalizedFirst === 'miqdar' ||
+        normalizedFirst === 'cemi' ||
+        normalizedFirst === 'no' ||
+        normalizedFirst === '№'
+      ) {
+        continue;
+      }
+
+      // Total row at the end
+      if (normalizedFirst.startsWith('cemi')) continue;
+
+      // Detect brand row: single non-empty cell in the product column
+      // and the rest empty (or the same value repeated in merged cells)
+      const nonEmptyCells = row.filter((c) => c !== '');
+      if (nonEmptyCells.length === 1 && first && !/^\d+$/.test(first)) {
+        currentBrand = first;
+        continue;
+      }
+
+      // Product row: columns roughly [No, Product, Qty, ...]
+      if (currentBrand) {
+        const product = row[1] || row[2] || '';
+        const qtyRaw = row[2] || row[3] || '';
+        const qty = parseQty(qtyRaw);
+
+        if (product && !product.toLowerCase().includes('cemi')) {
+          items.push({
+            brand: currentBrand,
+            product_name: product,
+            qty,
+          });
+        }
+      }
+    }
+
+    if (items.length === 0) {
       throw new Error(
-        'Tələb olunan sütunlar tapılmadı. Brend, Məhsul və Say/Qalıq sütunlarını əlavə edin.'
+        'Etibarlı ehtiyat sətri tapılmadı. Brend, Məhsul və Say/Qalıq sütunlarını əlavə edin.'
       );
     }
 
-    const items = [];
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      const brand = String(row[brandIdx] || '').trim();
-      const product = String(row[productIdx] || '').trim();
-      const qtyRaw = row[qtyIdx];
-      const qty = Number(qtyRaw);
-
-      if (!brand || !product) continue;
-      items.push({
-        brand,
-        product_name: product,
-        qty: Number.isFinite(qty) ? qty : 0,
-      });
-    }
-
-    if (items.length === 0) throw new Error('Etibarlı ehtiyat sətri tapılmadı.');
     return items;
+  };
+
+  const parseQty = (raw) => {
+    if (raw == null || raw === '' || raw === '-') return 0;
+    // Handle "1 234.000" and "1.000" style formatting
+    const cleaned = String(raw)
+      .replace(/\s+/g, '')
+      .replace(/,/g, '.');
+    const num = Number(cleaned);
+    return Number.isFinite(num) ? num : 0;
   };
 
   // SEC-016: maximum upload file size (5 MB)
@@ -347,9 +444,11 @@ function InventoryTab({ supabase }) {
       <div className="panel upload-panel">
         <h3>Günün ehtiyatını yüklə</h3>
         <p className="hint">
-          Excel və ya CSV fayl yükləyin. Sütunlar: <strong>Brend</strong>,{' '}
-          <strong>Məhsul</strong> və <strong>Say/Qalıq</strong>. Bu əməliyyat cari ehtiyat
-          məlumatlarının tamamilə əvəz olunması deməkdir.
+          Excel və ya CSV fayl yükləyin. İki format dəstəklənir: 1) Sütunlar:{' '}
+          <strong>Brend</strong>, <strong>Məhsul</strong>, <strong>Say/Qalıq</strong>; 2)
+          Gündəlik anbar qalığı hesabatı — brend adları ayrı sətirdə, altında №, Mal,
+          Miqdar sütunları. Bu əməliyyat cari ehtiyat məlumatlarının tamamilə əvəz
+          olunması deməkdir.
         </p>
         <label className="file-input-label">
           <input
@@ -520,12 +619,6 @@ export default function AdminDashboard() {
           Sifarişlər
         </button>
         <button
-          className={activeTab === 'inventory' ? 'active' : ''}
-          onClick={() => setActiveTab('inventory')}
-        >
-          Ehtiyat
-        </button>
-        <button
           className={activeTab === 'branches' ? 'active' : ''}
           onClick={() => setActiveTab('branches')}
         >
@@ -535,7 +628,6 @@ export default function AdminDashboard() {
 
       <main className="dash-body">
         {activeTab === 'orders' && <OrdersTab supabase={supabase} />}
-        {activeTab === 'inventory' && <InventoryTab supabase={supabase} />}
         {activeTab === 'branches' && <BranchesTab supabase={supabase} />}
       </main>
     </div>

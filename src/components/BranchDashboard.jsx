@@ -4,8 +4,9 @@ import { useSupabase } from '../contexts/SupabaseContext';
 import { BRANDS } from '../lib/constants';
 import Toast from './Toast';
 
-// SEC-009: hard limit that matches the DB CHECK constraint on orders.order_text
-const MAX_ORDER_TEXT = 2000;
+const MAX_PRODUCT_CODE = 200;
+const MAX_NOTE = 200;
+const MAX_QTY = 1_000_000;
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -18,38 +19,20 @@ function formatDate(iso) {
   });
 }
 
+function createEmptyLine() {
+  return { productCode: '', qty: '', note: '' };
+}
+
 export default function BranchDashboard() {
   const { user, logout } = useAuth();
   const supabase = useSupabase();
 
-  const [selectedBrand, setSelectedBrand] = useState(null);
-  const [inventory, setInventory] = useState([]);
-  const [inventoryUpdated, setInventoryUpdated] = useState(null);
-  const [orderText, setOrderText] = useState('');
+  const [selectedBrands, setSelectedBrands] = useState([]);
+  const [brandLines, setBrandLines] = useState({});
   const [orders, setOrders] = useState([]);
-  const [loadingInventory, setLoadingInventory] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
   const [error, setError] = useState('');
-
-  const fetchInventory = async (brand) => {
-    setLoadingInventory(true);
-    const { data, error: invError } = await supabase
-      .from('inventory')
-      .select('*')
-      .eq('brand', brand)
-      .order('product_name', { ascending: true });
-
-    if (invError) {
-      setError(`Ehtiyat yüklənə bilmədi: ${invError.message}`);
-      setInventory([]);
-    } else {
-      setInventory(data || []);
-      const latest = (data || []).map((r) => r.uploaded_at).filter(Boolean).sort().pop();
-      setInventoryUpdated(latest);
-    }
-    setLoadingInventory(false);
-  };
 
   const fetchOrders = async () => {
     const { data, error: ordError } = await supabase
@@ -65,49 +48,119 @@ export default function BranchDashboard() {
     fetchOrders();
   }, [user.id, supabase]);
 
-  useEffect(() => {
-    if (selectedBrand) fetchInventory(selectedBrand);
-  }, [selectedBrand]);
-
-  const handleBrandSelect = (brand) => {
-    setSelectedBrand(brand);
-    setOrderText('');
+  const toggleBrand = (brand) => {
+    setSelectedBrands((prev) => {
+      const exists = prev.includes(brand);
+      if (exists) {
+        return prev.filter((b) => b !== brand);
+      }
+      setBrandLines((lines) => ({
+        ...lines,
+        [brand]: [createEmptyLine()],
+      }));
+      return [...prev, brand];
+    });
     setError('');
+  };
+
+  const updateLine = (brand, index, field, value) => {
+    setBrandLines((prev) => {
+      const next = { ...prev };
+      const lines = [...(next[brand] || [createEmptyLine()])];
+      lines[index] = { ...lines[index], [field]: value };
+      next[brand] = lines;
+      return next;
+    });
+  };
+
+  const addLine = (brand) => {
+    setBrandLines((prev) => ({
+      ...prev,
+      [brand]: [...(prev[brand] || [createEmptyLine()]), createEmptyLine()],
+    }));
+  };
+
+  const removeLine = (brand, index) => {
+    setBrandLines((prev) => {
+      const lines = prev[brand] || [createEmptyLine()];
+      if (lines.length <= 1) {
+        return { ...prev, [brand]: [createEmptyLine()] };
+      }
+      return { ...prev, [brand]: lines.filter((_, i) => i !== index) };
+    });
+  };
+
+  const validateAll = () => {
+    const validLines = [];
+    for (const brand of selectedBrands) {
+      const lines = brandLines[brand] || [createEmptyLine()];
+      for (const line of lines) {
+        const code = line.productCode.trim();
+        const qtyRaw = String(line.qty).trim();
+        const qty = Number(qtyRaw);
+
+        if (!code && !qtyRaw) continue;
+
+        if (!code) {
+          setError(`${brand} brendində bütün sətirlərdə məhsul kodu/adı olmalıdır.`);
+          return null;
+        }
+        if (!qtyRaw || !Number.isFinite(qty) || qty <= 0 || qty > MAX_QTY) {
+          setError(`${brand} brendində bütün sətirlərdə düzgün say daxil edin.`);
+          return null;
+        }
+        if (code.length > MAX_PRODUCT_CODE) {
+          setError(
+            `${brand} brendində məhsul kodu/adı çox uzundur. Maksimum ${MAX_PRODUCT_CODE} simvol.`
+          );
+          return null;
+        }
+        if ((line.note || '').trim().length > MAX_NOTE) {
+          setError(`${brand} brendində qeyd çox uzundur. Maksimum ${MAX_NOTE} simvol.`);
+          return null;
+        }
+
+        validLines.push({
+          branch_id: user.id,
+          branch_name: user.display_name,
+          brand,
+          product_code: code,
+          qty,
+          note: (line.note || '').trim() || null,
+        });
+      }
+    }
+
+    if (validLines.length === 0) {
+      setError('Zəhmət olmasa ən azı bir məhsul sətri doldurun.');
+      return null;
+    }
+
+    return validLines;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedBrand) return;
+    if (selectedBrands.length === 0) return;
 
-    const trimmedText = orderText.trim();
-
-    if (!trimmedText) {
-      setError('Zəhmət olmasa sifariş detallarını daxil edin.');
-      return;
-    }
-
-    // SEC-009: enforce max length before sending to the server
-    if (trimmedText.length > MAX_ORDER_TEXT) {
-      setError(`Sifariş mətni çox uzundur. Maksimum ${MAX_ORDER_TEXT} simvol ola bilər.`);
-      return;
-    }
+    setError('');
+    const validLines = validateAll();
+    if (!validLines) return;
 
     setSubmitting(true);
-    setError('');
 
-    const { error: insertError } = await supabase.from('orders').insert({
-      branch_id:   user.id,
-      branch_name: user.display_name,
-      brand:       selectedBrand,
-      order_text:  trimmedText,
-    });
+    const { error: insertError } = await supabase.from('orders').insert(validLines);
 
     setSubmitting(false);
 
     if (insertError) {
       setError(`Sifariş göndərilə bilmədi: ${insertError.message}`);
     } else {
-      setOrderText('');
+      const reset = {};
+      for (const brand of selectedBrands) {
+        reset[brand] = [createEmptyLine()];
+      }
+      setBrandLines(reset);
       setToast({ message: 'Sifariş göndərildi', type: 'success' });
       fetchOrders();
     }
@@ -135,8 +188,8 @@ export default function BranchDashboard() {
             {BRANDS.map((brand) => (
               <button
                 key={brand}
-                className={`brand-tile ${selectedBrand === brand ? 'selected' : ''}`}
-                onClick={() => handleBrandSelect(brand)}
+                className={`brand-tile ${selectedBrands.includes(brand) ? 'selected' : ''}`}
+                onClick={() => toggleBrand(brand)}
               >
                 <span className="tile-hole" />
                 <span className="tile-label">{brand}</span>
@@ -145,66 +198,84 @@ export default function BranchDashboard() {
           </div>
         </section>
 
-        {selectedBrand && (
-          <section className="brand-workspace">
-            <div className="panel inventory-panel">
-              <div className="panel-header">
-                <h3>{selectedBrand} ehtiyatı</h3>
-                {inventoryUpdated && (
-                  <span className="muted">Yeniləndi {formatDate(inventoryUpdated)}</span>
-                )}
-              </div>
-
-              {loadingInventory ? (
-                <p className="muted">Ehtiyat yüklənir…</p>
-              ) : inventory.length === 0 ? (
-                <p className="muted">{selectedBrand} üçün hələ ehtiyat yüklənməyib.</p>
-              ) : (
-                <div className="table-wrap">
-                  <table className="data-table compact">
-                    <thead>
-                      <tr>
-                        <th>Məhsul</th>
-                        <th className="numeric">Say</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {inventory.map((item) => (
-                        <tr key={item.id}>
-                          <td>{item.product_name}</td>
-                          <td className="numeric mono">{item.qty}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            <form className="panel order-panel" onSubmit={handleSubmit}>
-              <h3>Sifariş ver — {selectedBrand}</h3>
+        <form className="panel order-panel" onSubmit={handleSubmit}>
+          {selectedBrands.length === 0 ? (
+            <p className="muted">Sifariş vermək üçün yuxarıdan ən azı bir brend seçin.</p>
+          ) : (
+            <>
+              <h3>Sifariş ver</h3>
               <p className="hint">
-                Aşağıya ehtiyacınız olanı yazın. Ehtiyatı bələdçi kimi istifadə edə bilərsiniz,
-                ancaq istənilən sərbəst mətn sifarişi qəbul edilir.
+                Hər brend üçün aşağıdakı cədvəldə məhsul kodu/adı, say və istəyə bağlı qeyd
+                yazın. + düyməsi ilə yeni sətir əlavə edin.
               </p>
-              <textarea
-                rows={6}
-                value={orderText}
-                onChange={(e) => setOrderText(e.target.value)}
-                placeholder={`məs. Vancat balıq 2kq — 10 ədəd, Vancat toyuq konservi 400qr — 24 ədəd`}
-                maxLength={MAX_ORDER_TEXT}
-              />
-              {/* SEC-009: live character counter so user knows the limit */}
-              <p className="hint" style={{ textAlign: 'right', marginTop: '4px' }}>
-                {orderText.length} / {MAX_ORDER_TEXT}
-              </p>
+
+              {selectedBrands.map((brand) => (
+                <div key={brand} className="brand-order-block">
+                  <h4>{brand}</h4>
+                  <div className="order-lines">
+                    <div className="order-line header">
+                      <span>Məhsul kodu/adı</span>
+                      <span>Say</span>
+                      <span>Qeyd</span>
+                      <span></span>
+                    </div>
+                    {(brandLines[brand] || [createEmptyLine()]).map((line, index) => (
+                      <div className="order-line" key={index}>
+                        <input
+                          type="text"
+                          placeholder="məs. Vancat balıq 2kq"
+                          value={line.productCode}
+                          onChange={(e) =>
+                            updateLine(brand, index, 'productCode', e.target.value)
+                          }
+                          maxLength={MAX_PRODUCT_CODE}
+                        />
+                        <input
+                          type="number"
+                          min={1}
+                          max={MAX_QTY}
+                          step="1"
+                          placeholder="0"
+                          value={line.qty}
+                          onChange={(e) => updateLine(brand, index, 'qty', e.target.value)}
+                        />
+                        <input
+                          type="text"
+                          placeholder="təcili lazımdır..."
+                          value={line.note}
+                          onChange={(e) => updateLine(brand, index, 'note', e.target.value)}
+                          maxLength={MAX_NOTE}
+                        />
+                        <button
+                          type="button"
+                          className="btn-icon danger"
+                          onClick={() => removeLine(brand, index)}
+                          aria-label="Sətri sil"
+                          title="Sətri sil"
+                        >
+                          🗑
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn-secondary add-line-btn"
+                    onClick={() => addLine(brand)}
+                  >
+                    + {brand} üçün sətir əlavə et
+                  </button>
+                </div>
+              ))}
+
               {error && <div className="form-error">{error}</div>}
               <button type="submit" className="btn-primary" disabled={submitting}>
-                {submitting ? 'Göndərilir…' : 'Sifarişi göndər'}
+                {submitting ? 'Göndərilir…' : 'Bütün sifarişləri birdəfəlik göndər'}
               </button>
-            </form>
-          </section>
-        )}
+            </>
+          )}
+        </form>
 
         <section className="panel history-panel">
           <h3>Sifariş tarixçəm</h3>
@@ -217,7 +288,9 @@ export default function BranchDashboard() {
                   <tr>
                     <th>Tarix</th>
                     <th>Brend</th>
-                    <th>Sifariş</th>
+                    <th>Məhsul</th>
+                    <th className="numeric">Say</th>
+                    <th>Qeyd</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -225,7 +298,9 @@ export default function BranchDashboard() {
                     <tr key={o.id}>
                       <td className="mono nowrap">{formatDate(o.created_at)}</td>
                       <td>{o.brand}</td>
-                      <td>{o.order_text}</td>
+                      <td>{o.product_code}</td>
+                      <td className="numeric mono">{o.qty}</td>
+                      <td>{o.note || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

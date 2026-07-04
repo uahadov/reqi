@@ -113,7 +113,10 @@ reqi/
 - `branch_id` (uuid → users)
 - `branch_name` (text, denormalize)
 - `brand` (text)
-- `order_text` (text)
+- `product_code` (text — məhsul kodu/adı)
+- `qty` (integer — məhsul sayı)
+- `note` (text, optional — qeyd)
+- `order_text` (text, generated — `product_code — qty (note)`)
 - `created_at` (timestamptz)
 - `deleted_at` (timestamptz, soft delete)
 
@@ -144,6 +147,7 @@ reqi/
 | `change_password(p_user_id, p_new_password)` | Admin şifre değişikliği (bcrypt hash + log). |
 | `replace_inventory(items jsonb)` | Mevcut envanteri silip yenisini yazar (admin only). |
 | `soft_delete_order(order_id uuid)` | Siparişe soft delete atar (admin only). |
+| `cleanup_old_orders()` | 2 ay + 5 gündən köhnə sifarişləri hard-delete edir. |
 
 ---
 
@@ -219,8 +223,8 @@ reqi/
 
 ### 10.1 Şube Siparişi Gönderme
 1. BranchDashboard’da marka seçilir.
-2. Sipariş metni yazılır.
-3. `supabase.from('orders').insert({branch_id, branch_name, brand, order_text})`
+2. Hər məhsul üçün kod/ad, say və istəyə bağlı qeyd doldurulur; + düyməsi ilə yeni sətir əlavə edilir.
+3. Göndərildikdə hər sətir ayrı orders row olaraq `supabase.from('orders').insert([...])` ilə yazılır.
 4. RLS `orders_insert_branch_own` kontrol eder.
 5. Başarılıysa toast gösterilir ve `orders` tablosu yeniden çekilir.
 
@@ -240,7 +244,7 @@ reqi/
 
 ### 10.4 Excel Export
 1. Filtreler uygulanır.
-2. Görünen satırlar `{Tarix, Filial, Brend, Sifariş mətni}` formatına çevrilir.
+2. Görünen satırlar `{Tarix, Filial, Brend, Məhsul, Say, Qeyd}` formatına çevrilir.
 3. SheetJS ile `.xlsx` dosyası oluşturulur ve indirilir.
 
 ### 10.5 Şifre Değiştirme
@@ -307,7 +311,7 @@ npm run build
 ## 14. Dil ve UI
 
 - Uygulama dili: **Azerbaycan Türkçesi**
-- Excel export başlıkları: `Tarix`, `Filial`, `Brend`, `Sifariş mətni`
+- Excel export başlıkları: `Tarix`, `Filial`, `Brend`, `Məhsul`, `Say`, `Qeyd`
 - Tarih formatı: `az-AZ` locale
 - Site adı ve logo: **BOUTIQUE**
 
@@ -326,6 +330,7 @@ npm run build
 
 ## 16. Gelecekte Eklenebilecekler
 
+- 2 ay + 5 günlük avtomatik sifariş təmizləmə (pg_cron ilə gündəlik işlədilir)
 - Dashboard özet kartları (bugünkü sipariş sayısı, kritik stoklar)
 - Kritik stok uyarıları
 - Siparişlerde metin arama
@@ -341,7 +346,7 @@ npm run build
 
 | Rol | Yetki |
 |-----|-------|
-| **Branch** | Giriş yap, marka seç, envanter gör, sipariş ver, kendi geçmişini gör. |
+| **Branch** | Giriş yap, marka seç, envanter gör, her marka için çoklu məhsul/say/qeyd satırlarıyla sipariş ver, kendi geçmişini gör. |
 | **Admin** | Tüm siparişleri gör/filtrele/export et/sil, envanter yükle/değiştir, tüm şifreleri değiştir. |
 
 ---
