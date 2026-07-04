@@ -619,7 +619,7 @@ textarea {
   flex-direction: column;
   gap: 0.5rem;
   padding: 1.25rem 1rem;
-  min-height: 96px;
+  min-height: 120px;
   text-align: center;
   background: var(--bg-raised);
   border: 1px solid var(--border);
@@ -653,7 +653,7 @@ textarea {
 .tile-label {
   font-family: var(--font-sans);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.85rem;
   color: var(--text);
 }
 
@@ -662,10 +662,10 @@ textarea {
 }
 
 .brand-logo {
-  width: 36px;
-  height: 36px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.5rem;
   filter: grayscale(0.2);
   transition: filter 0.2s var(--ease-out);
 }
@@ -682,6 +682,8 @@ textarea {
 }
 
 .brand-cell-logo {
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   border-radius: 4px;
   background: var(--bg-elevated);
