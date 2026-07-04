@@ -581,7 +581,8 @@ textarea {
    Dashboard shell — Premium dark zoo boutique theme
    --------------------------------------------------------------- */
 .dashboard {
-  max-width: 1200px;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
   padding: 1.5rem;
   min-height: 100vh;
