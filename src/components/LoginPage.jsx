@@ -47,6 +47,7 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
+      <img src="/cat.png" alt="" className="login-cat" />
       <motion.div
         className="login-card"
         initial={{ opacity: 0, y: 20 }}
