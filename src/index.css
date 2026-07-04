@@ -9,7 +9,7 @@
 
   /* Borders */
   --border: #27272a;
-  --border-hover: #3f3f46;
+  --border-hover: #3f3f46;  
   --border-focus: #7c3aed;
 
   /* Text */
@@ -578,27 +578,47 @@ textarea {
 }
 
 /* ---------------------------------------------------------------
-   Dashboard shell
+   Dashboard shell — Zoo Boutique glassmorphism theme
    --------------------------------------------------------------- */
 .dashboard {
   max-width: 1200px;
   margin: 0 auto;
   padding: 1.5rem;
+  min-height: 100vh;
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(10, 40, 10, 0.45) 0%, rgba(5, 20, 5, 0.85) 100%),
+    url('/grass-bg.jpg') center/cover no-repeat fixed;
+}
+
+.dashboard::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 80% 10%, rgba(124, 58, 237, 0.15) 0%, transparent 55%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .dash-header {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   color: #fff;
   padding: 1rem 1.25rem;
-  border-radius: var(--radius);
+  border-radius: 22px;
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
-  box-shadow: var(--shadow);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .dash-brand {
@@ -607,30 +627,47 @@ textarea {
   gap: 0.85rem;
 }
 
-.dash-brand .logo-tag {
-  background: var(--bg-raised);
-  border-color: var(--border);
-}
-
-.dash-brand .logo-hole {
-  background: var(--bg);
-  border-color: var(--accent);
+.dash-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
 }
 
 .dash-brand h1 {
   color: #fff;
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.35rem;
+  font-weight: 800;
   letter-spacing: -0.02em;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
 }
 
 .dash-brand p {
   margin-top: 0.15rem;
-  color: var(--text-tertiary);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.dash-header .btn-secondary {
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+}
+
+.dash-header .btn-secondary:hover:not(:disabled) {
+  background: rgba(124, 58, 237, 0.35);
+  border-color: rgba(168, 85, 247, 0.4);
 }
 
 .dash-tabs {
+  position: relative;
+  z-index: 1;
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.25rem;
@@ -638,55 +675,59 @@ textarea {
 }
 
 .dash-tabs button {
-  padding: 0.6rem 1.1rem;
+  padding: 0.65rem 1.2rem;
   border: 1px solid transparent;
-  background: transparent;
-  border-radius: var(--radius-sm);
-  font-weight: 500;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  font-weight: 600;
   font-size: 0.9rem;
-  color: var(--text-tertiary);
-  transition: all 0.15s var(--ease-out);
+  color: rgba(255, 255, 255, 0.65);
+  transition: all 0.2s var(--ease-out);
 }
 
 .dash-tabs button:hover {
-  color: var(--text);
-  background: var(--bg-elevated);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .dash-tabs button.active {
-  background: var(--bg-elevated);
-  color: var(--text);
-  border-color: var(--border);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: #fff;
+  border-color: rgba(168, 85, 247, 0.35);
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
 }
 
 .dash-body {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
 
 .panel {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 22px;
   padding: 1.5rem;
-  box-shadow: var(--shadow);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
-.panel h2 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 1.25rem;
-  color: var(--text);
-}
-
+.panel h2,
 .panel h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: var(--text);
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
 }
+
+.panel .muted,
+.panel .hint {
+  color: rgba(255, 255, 255, 0.7);
+}
+
 
 /* ---------------------------------------------------------------
    Brand picker
@@ -707,40 +748,43 @@ textarea {
   padding: 1.25rem 1rem;
   min-height: 120px;
   text-align: center;
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
   transition: all 0.2s var(--ease-out);
 }
 
 .brand-tile:hover {
-  border-color: var(--border-hover);
-  background: var(--bg-input);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
   transform: translateY(-2px);
 }
 
 .brand-tile.selected {
-  background: var(--accent-subtle);
-  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.35) 0%, rgba(168, 85, 247, 0.25) 100%);
+  border-color: rgba(168, 85, 247, 0.45);
   color: #fff;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.25);
 }
 
 .brand-tile.selected .tile-hole {
-  background: var(--bg);
-  border-color: var(--accent);
+  background: #fff;
+  border-color: #a855f7;
 }
 
 .tile-hole {
   position: absolute;
   top: 12px;
   right: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .tile-label {
   font-family: var(--font-sans);
   font-weight: 600;
   font-size: 0.85rem;
-  color: var(--text);
+  color: #fff;
 }
 
 .brand-tile.selected .tile-label {
@@ -785,9 +829,9 @@ textarea {
 }
 
 .brand-order-block {
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
   padding: 1.25rem;
   margin-bottom: 1rem;
 }
@@ -796,7 +840,7 @@ textarea {
   font-size: 0.85rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  color: var(--accent);
+  color: #c4b5fd;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -818,7 +862,7 @@ textarea {
 .order-line.header {
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: rgba(255, 255, 255, 0.55);
   padding: 0 0.25rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -832,16 +876,40 @@ textarea {
   text-align: right;
 }
 
+.order-line input,
+.order-line select {
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 10px;
+}
+
+.order-line input:focus,
+.order-line select:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+}
+
 .add-line-btn {
   align-self: flex-start;
   margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border-radius: 10px;
+}
+
+.add-line-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .table-wrap {
   overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-raised);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .data-table {
@@ -854,15 +922,15 @@ textarea {
 .data-table td {
   padding: 0.75rem 0.9rem;
   text-align: left;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   vertical-align: top;
-  color: var(--text);
+  color: #fff;
 }
 
 .data-table th {
-  background: var(--bg-elevated);
+  background: rgba(0, 0, 0, 0.25);
   font-weight: 600;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
   position: sticky;
   top: 0;
   text-transform: uppercase;
@@ -888,9 +956,9 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  background: var(--accent-subtle);
-  color: #c4b5fd;
-  border: 1px solid rgba(124, 58, 237, 0.2);
+  background: rgba(124, 58, 237, 0.2);
+  color: #e9d5ff;
+  border: 1px solid rgba(168, 85, 247, 0.3);
   border-radius: 999px;
   padding: 0.25rem 0.7rem;
   font-weight: 500;
@@ -918,6 +986,17 @@ textarea {
 .filters input {
   width: auto;
   min-width: 160px;
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 10px;
+}
+
+.filters select:focus,
+.filters input:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .date-filter,
@@ -931,7 +1010,7 @@ textarea {
 .text-filter span {
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: rgba(255, 255, 255, 0.65);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -962,7 +1041,7 @@ textarea {
   font-size: 0.85rem;
   font-weight: 600;
   margin-bottom: 0.75rem;
-  color: var(--accent);
+  color: #c4b5fd;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -996,7 +1075,7 @@ textarea {
 .history-filters .date-filter span {
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: rgba(255, 255, 255, 0.65);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -1004,6 +1083,16 @@ textarea {
 .history-filters input[type='date'] {
   width: auto;
   min-width: 140px;
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 10px;
+}
+
+.history-filters input[type='date']:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+  background: rgba(0, 0, 0, 0.35);
 }
 
 /* ---------------------------------------------------------------
