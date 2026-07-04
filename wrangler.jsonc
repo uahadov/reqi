@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "reqi",
+  "compatibility_date": "2026-07-04",
+  "assets": {
+    "directory": "dist"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
