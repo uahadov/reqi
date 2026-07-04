@@ -4,24 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { BRANCHES, ROLES } from '../lib/constants';
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 24, scale: 0.98 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.08, duration: 0.4, ease: [0.22, 1, 0.36, 1] },
-  }),
-};
+const ease = [0.22, 1, 0.36, 1];
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -66,11 +49,16 @@ export default function LoginPage() {
     <div className="login-page">
       <motion.div
         className="login-card"
-        variants={cardVariants}
-        initial="hidden"
-        animate="visible"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease }}
       >
-        <motion.div className="login-brand" custom={0} variants={itemVariants} initial="hidden" animate="visible">
+        <motion.div
+          className="login-brand"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1, duration: 0.4, ease }}
+        >
           <img src="/logo.jpeg" alt="BOUTIQUE" className="login-logo" />
           <div>
             <h1>BOUTIQUE</h1>
@@ -81,41 +69,35 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="login-form">
           <motion.div
             className="role-toggle"
-            custom={1}
-            variants={itemVariants}
-            initial="hidden"
-            animate="visible"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4, ease }}
           >
-            <motion.button
+            <button
               type="button"
               className={role === ROLES.BRANCH ? 'active' : ''}
               onClick={() => setRole(ROLES.BRANCH)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
             >
               Filial
-            </motion.button>
-            <motion.button
+            </button>
+            <button
               type="button"
               className={role === ROLES.ADMIN ? 'active' : ''}
               onClick={() => setRole(ROLES.ADMIN)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
             >
               Admin
-            </motion.button>
+            </button>
           </motion.div>
 
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" initial={false}>
             {role === ROLES.BRANCH ? (
               <motion.label
                 key="branch"
                 className="field"
-                custom={2}
-                variants={itemVariants}
-                initial="hidden"
-                animate="visible"
-                exit={{ opacity: 0, y: -8, transition: { duration: 0.2 } }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2, ease }}
               >
                 <span>Filial</span>
                 <select value={username} onChange={(e) => setUsername(e.target.value)}>
@@ -130,11 +112,10 @@ export default function LoginPage() {
               <motion.label
                 key="admin"
                 className="field"
-                custom={2}
-                variants={itemVariants}
-                initial="hidden"
-                animate="visible"
-                exit={{ opacity: 0, y: -8, transition: { duration: 0.2 } }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2, ease }}
               >
                 <span>İstifadəçi adı</span>
                 <input
@@ -149,10 +130,9 @@ export default function LoginPage() {
 
           <motion.label
             className="field"
-            custom={3}
-            variants={itemVariants}
-            initial="hidden"
-            animate="visible"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.4, ease }}
           >
             <span>Şifrə</span>
             <input
@@ -168,9 +148,10 @@ export default function LoginPage() {
             {error && (
               <motion.div
                 className="form-error"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginBottom: '1rem' }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                transition={{ duration: 0.2, ease }}
               >
                 {error}
               </motion.div>
@@ -181,12 +162,11 @@ export default function LoginPage() {
             type="submit"
             className="btn-primary"
             disabled={loading}
-            custom={4}
-            variants={itemVariants}
-            initial="hidden"
-            animate="visible"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.4, ease }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
           >
             {loading ? 'Daxil olunur…' : 'Daxil ol'}
           </motion.button>

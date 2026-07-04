@@ -7,25 +7,9 @@ import { BRANCHES, BRANDS } from '../lib/constants';
 import Toast from './Toast';
 import OrderDeleteModal from './OrderDeleteModal';
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.08 } },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 14 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22, 1, 0.36, 1] } },
-};
-
-const rowVariants = {
-  hidden: { opacity: 0, x: -10 },
-  visible: (i) => ({ opacity: 1, x: 0, transition: { delay: i * 0.03, duration: 0.28 } }),
-};
+const ease = [0.22, 1, 0.36, 1];
 
 // SEC-007: Sanitise a value before writing it to an Excel cell.
-// Any string starting with a formula-initiating character is prefixed with
-// a single quote so Excel / LibreOffice treats it as literal text, not a formula.
-// This prevents CSV/Excel formula injection (DDE, HYPERLINK, CMD payloads).
 function sanitizeExcelCell(value) {
   if (typeof value !== 'string') return value;
   const formulaChars = ['=', '+', '-', '@', '\t', '\r'];
@@ -37,11 +21,11 @@ function sanitizeExcelCell(value) {
 
 // SEC-016: Accepted file MIME types for inventory upload.
 const ALLOWED_UPLOAD_TYPES = new Set([
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-  'application/vnd.ms-excel',                                           // .xls
-  'text/csv',                                                           // .csv
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+  'text/csv',
   'application/csv',
-  'text/plain',                                                         // some OS report .csv as text/plain
+  'text/plain',
 ]);
 const ALLOWED_UPLOAD_EXT = /\.(xlsx|xls|csv)$/i;
 
@@ -59,6 +43,13 @@ function formatDate(iso) {
 function isoDate(iso) {
   if (!iso) return '';
   return new Date(iso).toISOString().slice(0, 10);
+}
+
+function parseQty(raw) {
+  if (raw == null || raw === '' || raw === '-') return 0;
+  const cleaned = String(raw).replace(/\s+/g, '').replace(/,/g, '.');
+  const num = Number(cleaned);
+  return Number.isFinite(num) ? num : 0;
 }
 
 // ------------------------------------------------------------------
@@ -112,15 +103,13 @@ function OrdersTab({ supabase }) {
 
   const handleExport = () => {
     if (filteredOrders.length === 0) return;
-    // SEC-007: sanitize every user-supplied field before writing to Excel.
-    // This neutralises formula injection (=HYPERLINK, =CMD, DDE payloads, etc.).
     const rows = filteredOrders.map((o) => ({
-      Tarix:            formatDate(o.created_at),         // server-generated timestamp — safe
-      Filial:           sanitizeExcelCell(o.branch_name),
-      Brend:            sanitizeExcelCell(o.brand),
-      Məhsul:           sanitizeExcelCell(o.product_code),
-      Say:              o.qty,
-      Qeyd:             sanitizeExcelCell(o.note || ''),
+      Tarix: formatDate(o.created_at),
+      Filial: sanitizeExcelCell(o.branch_name),
+      Brend: sanitizeExcelCell(o.brand),
+      Məhsul: sanitizeExcelCell(o.product_code),
+      Say: o.qty,
+      Qeyd: sanitizeExcelCell(o.note || ''),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -144,8 +133,18 @@ function OrdersTab({ supabase }) {
   };
 
   return (
-    <motion.div className="tab-content" variants={containerVariants} initial="hidden" animate="visible">
-      <motion.div className="toolbar" variants={itemVariants}>
+    <motion.div
+      className="tab-content"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.35, ease }}
+    >
+      <motion.div
+        className="toolbar"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease }}
+      >
         <div className="filters">
           <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)}>
             <option value="">Bütün filiallar</option>
@@ -186,8 +185,8 @@ function OrdersTab({ supabase }) {
                 dateTo,
               })
             }
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
             Axtar
           </motion.button>
@@ -197,23 +196,24 @@ function OrdersTab({ supabase }) {
           className="btn-primary"
           onClick={handleExport}
           disabled={filteredOrders.length === 0}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
           Excel-ə çıxar
         </motion.button>
       </motion.div>
 
       {loading ? (
-        <motion.p className="muted" variants={itemVariants}>
-          Sifarişlər yüklənir…
-        </motion.p>
+        <p className="muted">Sifarişlər yüklənir…</p>
       ) : filteredOrders.length === 0 ? (
-        <motion.p className="muted" variants={itemVariants}>
-          Cari filtrlərə uyğun sifariş yoxdur.
-        </motion.p>
+        <p className="muted">Cari filtrlərə uyğun sifariş yoxdur.</p>
       ) : (
-        <motion.div className="table-wrap" variants={itemVariants}>
+        <motion.div
+          className="table-wrap"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.35, ease }}
+        >
           <table className="data-table">
             <thead>
               <tr>
@@ -230,10 +230,9 @@ function OrdersTab({ supabase }) {
               {filteredOrders.map((o, i) => (
                 <motion.tr
                   key={o.id}
-                  custom={i}
-                  variants={rowVariants}
-                  initial="hidden"
-                  animate="visible"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: i * 0.02, duration: 0.25, ease }}
                 >
                   <td className="mono nowrap">{formatDate(o.created_at)}</td>
                   <td>
@@ -249,8 +248,8 @@ function OrdersTab({ supabase }) {
                       onClick={() => setDeleteOrder(o)}
                       aria-label="Sifarişi sil"
                       title="Sifarişi sil"
-                      whileHover={{ scale: 1.1, rotate: 8 }}
-                      whileTap={{ scale: 0.9 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
                       🗑
                     </motion.button>
@@ -272,9 +271,10 @@ function OrdersTab({ supabase }) {
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ duration: 0.2, ease }}
           >
             <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
           </motion.div>
@@ -336,7 +336,6 @@ function InventoryTab({ supabase }) {
 
     if (rows.length < 2) throw new Error('Fayl boş görünür.');
 
-    // Try the standard columnar format first: Brand / Product / Qty
     const headers = rows[0].map(normalizeHeader);
     const findCol = (names) => {
       for (const name of names) {
@@ -359,18 +358,11 @@ function InventoryTab({ supabase }) {
         const qty = parseQty(row[qtyIdx]);
 
         if (!brand || !product) continue;
-        items.push({
-          brand,
-          product_name: product,
-          qty,
-        });
+        items.push({ brand, product_name: product, qty });
       }
       if (items.length > 0) return items;
     }
 
-    // Fallback: parse the customer's daily stock report format where
-    // brand names appear as their own row, followed by product rows with
-    // columns: No, Product, Qty. The last row is a total line.
     return parseStockReport(rows);
   };
 
@@ -381,13 +373,11 @@ function InventoryTab({ supabase }) {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i].map((c) => (c == null ? '' : String(c).trim()));
 
-      // Skip empty rows and header/meta rows
       if (row.every((c) => c === '')) continue;
 
       const first = row[1] || row[0] || '';
       const normalizedFirst = normalizeHeader(first);
 
-      // Skip title, date, and column header rows
       if (
         normalizedFirst.includes('qaliq') ||
         normalizedFirst.includes('qalıq') ||
@@ -400,29 +390,21 @@ function InventoryTab({ supabase }) {
         continue;
       }
 
-      // Total row at the end
       if (normalizedFirst.startsWith('cemi')) continue;
 
-      // Detect brand row: single non-empty cell in the product column
-      // and the rest empty (or the same value repeated in merged cells)
       const nonEmptyCells = row.filter((c) => c !== '');
       if (nonEmptyCells.length === 1 && first && !/^\d+$/.test(first)) {
         currentBrand = first;
         continue;
       }
 
-      // Product row: columns roughly [No, Product, Qty, ...]
       if (currentBrand) {
         const product = row[1] || row[2] || '';
         const qtyRaw = row[2] || row[3] || '';
         const qty = parseQty(qtyRaw);
 
         if (product && !product.toLowerCase().includes('cemi')) {
-          items.push({
-            brand: currentBrand,
-            product_name: product,
-            qty,
-          });
+          items.push({ brand: currentBrand, product_name: product, qty });
         }
       }
     }
@@ -436,32 +418,18 @@ function InventoryTab({ supabase }) {
     return items;
   };
 
-  const parseQty = (raw) => {
-    if (raw == null || raw === '' || raw === '-') return 0;
-    // Handle "1 234.000" and "1.000" style formatting
-    const cleaned = String(raw)
-      .replace(/\s+/g, '')
-      .replace(/,/g, '.');
-    const num = Number(cleaned);
-    return Number.isFinite(num) ? num : 0;
-  };
-
-  // SEC-016: maximum upload file size (5 MB)
   const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // SEC-016: validate file type by MIME type AND extension
-    // (the `accept` attribute is UI-only and trivially bypassed)
     if (!ALLOWED_UPLOAD_TYPES.has(file.type) && !ALLOWED_UPLOAD_EXT.test(file.name)) {
       setError('Yalnız .xlsx, .xls və .csv faylları qəbul edilir.');
       e.target.value = '';
       return;
     }
 
-    // SEC-016: guard against excessively large files before parsing
     if (file.size > MAX_FILE_SIZE_BYTES) {
       setError('Fayl həcmi 5 MB-dan çox ola bilməz.');
       e.target.value = '';
@@ -499,12 +467,7 @@ function InventoryTab({ supabase }) {
           olunması deməkdir.
         </p>
         <label className="file-input-label">
-          <input
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            onChange={handleFileChange}
-            disabled={parsing}
-          />
+          <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} disabled={parsing} />
           <span className="btn-primary">{parsing ? 'Yüklənir…' : 'Fayl seç'}</span>
         </label>
         {error && <div className="form-error">{error}</div>}
@@ -602,13 +565,15 @@ function BranchesTab({ supabase }) {
           value={passwords[p.id] || ''}
           onChange={(e) => setPasswords((prev) => ({ ...prev, [p.id]: e.target.value }))}
         />
-        <button
+        <motion.button
           className="btn-primary"
           onClick={() => handleSave(p.id)}
           disabled={!passwords[p.id] || saving[p.id]}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
           {saving[p.id] ? 'Saxlanılır…' : 'Saxla'}
-        </button>
+        </motion.button>
       </div>
     </div>
   );
@@ -617,8 +582,18 @@ function BranchesTab({ supabase }) {
   const adminProfile = profiles.find((p) => p.id === admin.id);
 
   return (
-    <motion.div className="tab-content" variants={containerVariants} initial="hidden" animate="visible">
-      <motion.div className="panel passwords-panel" variants={itemVariants}>
+    <motion.div
+      className="tab-content"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.35, ease }}
+    >
+      <motion.div
+        className="panel passwords-panel"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease }}
+      >
         <h3>Filial şifrələri</h3>
         {branches.length === 0 ? (
           <p className="muted">Filial hesabı tapılmadı.</p>
@@ -628,7 +603,12 @@ function BranchesTab({ supabase }) {
       </motion.div>
 
       {adminProfile && (
-        <motion.div className="panel passwords-panel" variants={itemVariants}>
+        <motion.div
+          className="panel passwords-panel"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.35, ease }}
+        >
           <h3>Admin şifrəsi</h3>
           <div className="password-list">{renderRow(adminProfile)}</div>
         </motion.div>
@@ -637,9 +617,10 @@ function BranchesTab({ supabase }) {
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ duration: 0.2, ease }}
           >
             <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
           </motion.div>
@@ -660,11 +641,16 @@ export default function AdminDashboard() {
   return (
     <motion.div
       className="dashboard admin-dashboard"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4, ease }}
     >
-      <motion.header className="dash-header" variants={itemVariants}>
+      <motion.header
+        className="dash-header"
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease }}
+      >
         <div className="dash-brand">
           <img src="/logo.jpeg" alt="BOUTIQUE" className="dash-logo" />
           <div>
@@ -675,40 +661,35 @@ export default function AdminDashboard() {
         <motion.button
           className="btn-secondary"
           onClick={logout}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
           Çıxış
         </motion.button>
       </motion.header>
 
-      <motion.nav className="dash-tabs" variants={itemVariants}>
-        <motion.button
-          className={activeTab === 'orders' ? 'active' : ''}
-          onClick={() => setActiveTab('orders')}
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.97 }}
-        >
+      <motion.nav
+        className="dash-tabs"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.35, ease }}
+      >
+        <button className={activeTab === 'orders' ? 'active' : ''} onClick={() => setActiveTab('orders')}>
           Sifarişlər
-        </motion.button>
-        <motion.button
-          className={activeTab === 'branches' ? 'active' : ''}
-          onClick={() => setActiveTab('branches')}
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.97 }}
-        >
+        </button>
+        <button className={activeTab === 'branches' ? 'active' : ''} onClick={() => setActiveTab('branches')}>
           Filiallar
-        </motion.button>
+        </button>
       </motion.nav>
 
       <AnimatePresence mode="wait">
         <motion.main
           className="dash-body"
           key={activeTab}
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -12 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.25, ease }}
         >
           {activeTab === 'orders' && <OrdersTab supabase={supabase} />}
           {activeTab === 'branches' && <BranchesTab supabase={supabase} />}

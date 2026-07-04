@@ -8,6 +8,7 @@ import Toast from './Toast';
 const MAX_PRODUCT_CODE = 200;
 const MAX_NOTE = 200;
 const MAX_QTY = 1_000_000;
+const ease = [0.22, 1, 0.36, 1];
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -23,34 +24,6 @@ function formatDate(iso) {
 function createEmptyLine() {
   return { productCode: '', qty: '', note: '' };
 }
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.06, delayChildren: 0.1 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
-  },
-};
-
-const blockVariants = {
-  hidden: { opacity: 0, y: 20, scale: 0.98 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
-  },
-  exit: { opacity: 0, y: -12, transition: { duration: 0.25 } },
-};
 
 export default function BranchDashboard() {
   const { user, logout } = useAuth();
@@ -199,11 +172,16 @@ export default function BranchDashboard() {
   return (
     <motion.div
       className="dashboard branch-dashboard"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4, ease }}
     >
-      <motion.header className="dash-header" variants={itemVariants}>
+      <motion.header
+        className="dash-header"
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease }}
+      >
         <div className="dash-brand">
           <img src="/logo.jpeg" alt="BOUTIQUE" className="dash-logo" />
           <div>
@@ -214,43 +192,49 @@ export default function BranchDashboard() {
         <motion.button
           className="btn-secondary"
           onClick={logout}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
           Çıxış
         </motion.button>
       </motion.header>
 
-      <motion.main className="dash-body">
-        <motion.section className="panel brand-picker" variants={itemVariants}>
+      <main className="dash-body">
+        <motion.section
+          className="panel brand-picker"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4, ease }}
+        >
           <h2>Brend seçin</h2>
-          <motion.div className="brand-grid" variants={containerVariants}>
-            {BRANDS.map((brand) => (
+          <div className="brand-grid">
+            {BRANDS.map((brand, i) => (
               <motion.button
                 key={brand}
                 className={`brand-tile ${selectedBrands.includes(brand) ? 'selected' : ''}`}
                 onClick={() => toggleBrand(brand)}
-                variants={itemVariants}
-                whileHover={{ y: -4, boxShadow: '0 12px 32px rgba(139, 92, 246, 0.28)' }}
-                whileTap={{ scale: 0.97 }}
-                layout
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 + i * 0.03, duration: 0.35, ease }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
               >
                 <span className="tile-hole" />
                 <span className="tile-label">{brand}</span>
               </motion.button>
             ))}
-          </motion.div>
+          </div>
         </motion.section>
 
         <motion.form
           className="panel order-panel"
           onSubmit={handleSubmit}
-          variants={itemVariants}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4, ease }}
         >
           {selectedBrands.length === 0 ? (
-            <motion.p className="muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              Sifariş vermək üçün yuxarıdan ən azı bir brend seçin.
-            </motion.p>
+            <p className="muted">Sifariş vermək üçün yuxarıdan ən azı bir brend seçin.</p>
           ) : (
             <>
               <h3>Sifariş ver</h3>
@@ -264,10 +248,10 @@ export default function BranchDashboard() {
                   <motion.div
                     key={brand}
                     className="brand-order-block"
-                    variants={blockVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3, ease }}
                     layout
                   >
                     <h4>{brand}</h4>
@@ -286,6 +270,7 @@ export default function BranchDashboard() {
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2, ease }}
                             layout
                           >
                             <input
@@ -319,8 +304,8 @@ export default function BranchDashboard() {
                               onClick={() => removeLine(brand, index)}
                               aria-label="Sətri sil"
                               title="Sətri sil"
-                              whileHover={{ scale: 1.1, rotate: 8 }}
-                              whileTap={{ scale: 0.9 }}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
                             >
                               🗑
                             </motion.button>
@@ -333,8 +318,8 @@ export default function BranchDashboard() {
                       type="button"
                       className="btn-secondary add-line-btn"
                       onClick={() => addLine(brand)}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
                     >
                       + {brand} üçün sətir əlavə et
                     </motion.button>
@@ -342,22 +327,26 @@ export default function BranchDashboard() {
                 ))}
               </AnimatePresence>
 
-              {error && (
-                <motion.div
-                  className="form-error"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                >
-                  {error}
-                </motion.div>
-              )}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    className="form-error"
+                    initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginBottom: '1rem' }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    transition={{ duration: 0.2, ease }}
+                  >
+                    {error}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <motion.button
                 type="submit"
                 className="btn-primary"
                 disabled={submitting}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
               >
                 {submitting ? 'Göndərilir…' : 'Bütün sifarişləri birdəfəlik göndər'}
               </motion.button>
@@ -365,12 +354,15 @@ export default function BranchDashboard() {
           )}
         </motion.form>
 
-        <motion.section className="panel history-panel" variants={itemVariants}>
+        <motion.section
+          className="panel history-panel"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.4, ease }}
+        >
           <h3>Sifariş tarixçəm</h3>
           {orders.length === 0 ? (
-            <motion.p className="muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              Hələ sifariş göndərilməyib.
-            </motion.p>
+            <p className="muted">Hələ sifariş göndərilməyib.</p>
           ) : (
             <div className="table-wrap">
               <table className="data-table">
@@ -387,9 +379,9 @@ export default function BranchDashboard() {
                   {orders.map((o, i) => (
                     <motion.tr
                       key={o.id}
-                      initial={{ opacity: 0, x: -12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.04, duration: 0.3 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: i * 0.03, duration: 0.25, ease }}
                     >
                       <td className="mono nowrap">{formatDate(o.created_at)}</td>
                       <td>{o.brand}</td>
@@ -403,14 +395,15 @@ export default function BranchDashboard() {
             </div>
           )}
         </motion.section>
-      </motion.main>
+      </main>
 
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ duration: 0.2, ease }}
           >
             <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
           </motion.div>
