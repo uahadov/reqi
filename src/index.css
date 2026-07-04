@@ -604,6 +604,44 @@ textarea {
   z-index: 0;
 }
 
+.dashboard::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.35) 0%, transparent 2%),
+    radial-gradient(circle at 14% 22%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 11% 21%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 13% 24%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 88% 42%, rgba(255, 255, 255, 0.35) 0%, transparent 2%),
+    radial-gradient(circle at 90% 46%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 87% 45%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 89% 48%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 35% 78%, rgba(255, 255, 255, 0.35) 0%, transparent 2%),
+    radial-gradient(circle at 37% 82%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 34% 81%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 36% 84%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 72% 12%, rgba(255, 255, 255, 0.35) 0%, transparent 2%),
+    radial-gradient(circle at 74% 16%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 71% 15%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 73% 18%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 55% 55%, rgba(255, 255, 255, 0.35) 0%, transparent 2%),
+    radial-gradient(circle at 57% 59%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 54% 58%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 56% 61%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 5% 65%, rgba(255, 255, 255, 0.35) 0%, transparent 2%),
+    radial-gradient(circle at 7% 69%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 4% 68%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 6% 71%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 95% 88%, rgba(255, 255, 255, 0.35) 0%, transparent 2%),
+    radial-gradient(circle at 97% 92%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 94% 91%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%),
+    radial-gradient(circle at 96% 94%, rgba(255, 255, 255, 0.25) 0%, transparent 1.2%);
+}
+
 .dash-header {
   position: relative;
   z-index: 1;
