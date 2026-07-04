@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "deploy": "wrangler versions deploy"
+    "deploy": "wrangler pages deploy dist --project-name reqi --branch main"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",
