@@ -40,7 +40,8 @@ export default function BranchDashboard() {
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [appliedFilters, setAppliedFilters] = useState({ dateFrom: '', dateTo: '' });
+  const [historyBrandFilter, setHistoryBrandFilter] = useState('');
+  const [appliedFilters, setAppliedFilters] = useState({ dateFrom: '', dateTo: '', brand: '' });
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
   const [error, setError] = useState('');
@@ -403,15 +404,31 @@ export default function BranchDashboard() {
                   onChange={(e) => setDateTo(e.target.value)}
                 />
               </label>
+              <label className="text-filter">
+                <span>Brend</span>
+                <select
+                  value={historyBrandFilter}
+                  onChange={(e) => setHistoryBrandFilter(e.target.value)}
+                >
+                  <option value="">Bütün brendlər</option>
+                  {BRANDS.map((b) => (
+                    <option key={b.name} value={b.name}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <motion.button
                 type="button"
                 className="btn-secondary"
                 onClick={() => {
-                  setAppliedFilters({ dateFrom, dateTo });
+                  const filters = { dateFrom, dateTo, brand: historyBrandFilter };
+                  setAppliedFilters(filters);
                   const next = orders.filter((o) => {
                     const d = isoDate(o.created_at);
-                    if (dateFrom && d < dateFrom) return false;
-                    if (dateTo && d > dateTo) return false;
+                    if (filters.dateFrom && d < filters.dateFrom) return false;
+                    if (filters.dateTo && d > filters.dateTo) return false;
+                    if (filters.brand && o.brand !== filters.brand) return false;
                     return true;
                   });
                   setFilteredOrders(next);
@@ -428,7 +445,7 @@ export default function BranchDashboard() {
             <p className="muted">
               {orders.length === 0
                 ? 'Hələ sifariş göndərilməyib.'
-                : 'Cari tarix aralığında sifariş yoxdur.'}
+                : 'Cari filtrlərə uyğun sifariş yoxdur.'}
             </p>
           ) : (
             <div className="table-wrap">
